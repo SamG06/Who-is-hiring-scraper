@@ -1,0 +1,11 @@
+{
+  "name": "whoishiring",
+  "version": "1.0.0",
+  "description": "Scraper hacker news who is hiring",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC"
+}
