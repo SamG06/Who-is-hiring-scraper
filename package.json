@@ -4,8 +4,13 @@
   "description": "Scraper hacker news who is hiring",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "nodemon index.js"
   },
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "fastify": "^3.9.2",
+    "puppeteer": "^5.5.0"
+  }
 }
