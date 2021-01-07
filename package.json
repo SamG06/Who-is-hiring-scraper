@@ -11,6 +11,8 @@
   "license": "ISC",
   "dependencies": {
     "fastify": "^3.9.2",
+    "fastify-cors": "^5.1.0",
+    "nodemon": "^2.0.6",
     "puppeteer": "^5.5.0"
   }
 }

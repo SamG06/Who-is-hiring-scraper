@@ -2,6 +2,8 @@ const fastify = require('fastify')({
     logger: true
 })
 
+fastify.register(require('fastify-cors'), {})
+
 const scraper = require('./scraper.js');
 
 fastify.get('/', function (request, reply) {
