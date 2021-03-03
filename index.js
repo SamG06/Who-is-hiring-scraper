@@ -9,7 +9,7 @@ fastify.register(require('fastify-cors'), {
 const scraper = require('./scraper.js');
 
 fastify.get('/', function (request, reply) {
-    reply.send({ message: 'Scraper for hacker news whoishiring site' })
+    reply.send({ message: 'Scraper for hacker news whoishiring' })
 })
 
 fastify.route({ method: 'GET', url: '/jobs', handler: scraper })
