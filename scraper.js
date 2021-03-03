@@ -9,7 +9,12 @@ setInterval(() => {
 let jobPackage = null;
 
 const getJobPosts = async () => {
-    const browser = await puppeter.launch();
+    const browser = await puppeteer.launch({
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+        ],
+      });
     const page = await browser.newPage();
     await page.setRequestInterception(true);
     page.on('request', (request) => {
