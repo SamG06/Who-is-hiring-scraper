@@ -1,4 +1,4 @@
-const puppeter = require('puppeteer');
+const puppeteer = require('puppeteer');
 
 const minutes = 600 * 3000
 setInterval(() => {
