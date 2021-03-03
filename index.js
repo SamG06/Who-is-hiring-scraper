@@ -2,7 +2,9 @@ const fastify = require('fastify')({
     logger: true
 })
 
-fastify.register(require('fastify-cors'), {})
+fastify.register(require('fastify-cors'), {
+    origin: '*'
+})
 
 const scraper = require('./scraper.js');
 
