@@ -5,14 +5,21 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "nodemon index.js"
+    "start": "nodemon index.js",
+    "testing": "nodemon testing.js"
   },
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "dependencies": {
+    "dompurify": "^2.3.1",
+    "dotenv": "^10.0.0",
     "fastify": "^3.9.2",
     "fastify-cors": "^5.1.0",
+    "jsdom": "^17.0.0",
     "nodemon": "^2.0.6",
     "puppeteer": "^5.5.0"
+  },
+  "devDependencies": {
+    "sequelize-cli": "^6.2.0"
   }
 }
