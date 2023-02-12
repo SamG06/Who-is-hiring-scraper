@@ -9,15 +9,20 @@ const DOMPurify = createDOMPurify(window);
 
 const minutes = 600 * 3000;
 
-setInterval(() => {
-    console.log('updated job posts', new Date())
-    getJobPosts();
-}, minutes)
+// (() => {
+// console.log('HUH')
+// setInterval(() => {
+//     console.log('updated job posts', new Date())
+//     getJobPosts();
+// }, minutes)
+
+// })()
 
 let jobPackage = null;
 
 const getJobPosts = async () => {
     const browser = await puppeteer.launch({
+        executablePath: process.env['PUPPETEER_EXECUTABLE_PATH'],
         args: [
           '--no-sandbox',
           '--disable-setuid-sandbox',
@@ -48,7 +53,7 @@ const getJobPosts = async () => {
     }
 
     // Grab all posts
-    const allPosts = await page.evaluate(() => Array.from(document.querySelectorAll('.storylink'), e => {
+    const allPosts = await page.evaluate(() => Array.from(document.querySelectorAll('.titleline'), e => {
         if (e.textContent.includes('Who is hiring')) {
             return e.getAttribute('href');
         }
@@ -77,9 +82,16 @@ const getJobPosts = async () => {
 
         const pageJobPosts = await page.evaluate((eval) => {
             const moreLink = document.querySelector('.moreLink');
-            month = document.querySelector('.storylink').innerText.match(/\(([^)]+)\)/)[1];
 
-    
+            let month = document.querySelector('.titleline');
+            console.log('taco')
+
+            if(month){
+              month = month.innerText.match(/\(([^)]+)\)/)[1]
+              console.log('this ran')
+            } else {
+                throw new Error('NO match for month. Please update')
+            }
             const newArray = Array.from(document.querySelectorAll('.comtr'), e => { 
                 e.querySelector('.reply').remove();
                 // check if message is just a reply through indentation
@@ -143,20 +155,24 @@ const getJobPosts = async () => {
     await browser.close();
 
     return jobPackage
+
     } catch (error) {
-        console.log(error);
+        jobPackage = {
+            statusCode: 500, 
+            msg: 'Whoishiring likely changed something in their HTML. Contact API admin or make a PR.'
+         }
+         return jobPackage
     } finally {
         await browser.close();
     }
 }
 
-getJobPosts();
+const sendJobPackage = async (request, reply) => {
+    if (!jobPackage) await getJobPosts();
 
-const sendJobPackage = () => {
-    if (!jobPackage) {
-        return getJobPosts();
-    }
-    return jobPackage;
+    statusCode = jobPackage.statusCode ? 500 : 200;
+    
+    reply.code(statusCode).send(jobPackage);
 }
 
 module.exports = sendJobPackage;
