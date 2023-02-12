@@ -14,7 +14,7 @@ fastify.get("/", function (request, reply) {
 
 fastify.route({ method: "GET", url: "/jobs", handler: scraper });
 
-fastify.listen(3003, "0.0.0.0", function (err, address) {
+fastify.listen(3001, "0.0.0.0", function (err, address) {
   if (err) {
     fastify.log.error(err);
     process.exit(1);
