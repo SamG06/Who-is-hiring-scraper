@@ -12,7 +12,7 @@ fastify.get("/", function (request, reply) {
   reply.send({ message: "Scraper for hacker news whoishiring" });
 });
 
-fastify.route({ method: "GET", url: "/jobs", handler: scraper });
+fastify.route({ method: "GET", url: "/whoishiring/jobs", handler: scraper });
 
 fastify.listen(3001, "0.0.0.0", function (err, address) {
   if (err) {
