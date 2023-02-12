@@ -9,14 +9,16 @@ const DOMPurify = createDOMPurify(window);
 
 const minutes = 600 * 3000;
 
-// (() => {
-// console.log('HUH')
-// setInterval(() => {
-//     console.log('updated job posts', new Date())
-//     getJobPosts();
-// }, minutes)
 
-// })()
+(() => {
+setInterval(() => {
+    getJobPosts();
+}, minutes)
+})()
+
+const errorConstructor = (msg) => {
+    return { statusCode: 500, error: msg }
+ }
 
 let jobPackage = null;
 
@@ -53,13 +55,23 @@ const getJobPosts = async () => {
     }
 
     // Grab all posts
-    const allPosts = await page.evaluate(() => Array.from(document.querySelectorAll('.titleline'), e => {
+    const allPosts = await page.evaluate(() => Array.from(document.querySelectorAll('.titleline a'), e => {
         if (e.textContent.includes('Who is hiring')) {
             return e.getAttribute('href');
         }
+
+        return null
     }));
 
+    if(!allPosts.length){
+        throw new Error('All post returned nothing.')
+    } 
+
     const jobPostPageLinks = allPosts.filter(post => post !== null);
+
+    if(!jobPostPageLinks.length){
+        throw new Error('Job post page links not found.')
+    }
 
     let pageNum = 1;
     let noMorePages = false;
@@ -74,7 +86,7 @@ const getJobPosts = async () => {
         await sleep(9000); // Don't parse too fast and get blocked :3
 
         const mostRecentMonthPage = `${ycom}${jobPostPageLinks[0]}&&p=${pageNum}`;
-        
+        console.log(mostRecentMonthPage)
         console.log('Page ' + pageNum);
         console.log(jobPostPageLinks[0]);
 
@@ -84,14 +96,16 @@ const getJobPosts = async () => {
             const moreLink = document.querySelector('.moreLink');
 
             let month = document.querySelector('.titleline');
-            console.log('taco')
+   
 
             if(month){
-              month = month.innerText.match(/\(([^)]+)\)/)[1]
+              month = month.innerText?.match(/\(([^)]+)\)/)[1]
               console.log('this ran')
             } else {
-                throw new Error('NO match for month. Please update')
+                throw new Error('No match for month. Please update' + mostRecentMonthPage)
             }
+
+
             const newArray = Array.from(document.querySelectorAll('.comtr'), e => { 
                 e.querySelector('.reply').remove();
                 // check if message is just a reply through indentation
@@ -151,17 +165,15 @@ const getJobPosts = async () => {
     })
 
    
-    jobPackage = newJobPackage;
+    jobPackage = {statusCode: 200, jobs: newJobPackage, date_updated: new Date()};
+    
     await browser.close();
 
     return jobPackage
 
     } catch (error) {
-        jobPackage = {
-            statusCode: 500, 
-            msg: 'Whoishiring likely changed something in their HTML. Contact API admin or make a PR.'
-         }
-         return jobPackage
+         jobPackage = errorConstructor(error.message)
+         return
     } finally {
         await browser.close();
     }
@@ -169,10 +181,8 @@ const getJobPosts = async () => {
 
 const sendJobPackage = async (request, reply) => {
     if (!jobPackage) await getJobPosts();
-
-    statusCode = jobPackage.statusCode ? 500 : 200;
     
-    reply.code(statusCode).send(jobPackage);
+    reply.code(jobPackage.statusCode).send(jobPackage);
 }
 
-module.exports = sendJobPackage;
+module.exports = sendJobPackage; 
