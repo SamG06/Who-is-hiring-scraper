@@ -92,6 +92,9 @@ const getJobPosts = async () => {
 
         await page.goto(mostRecentMonthPage, 'rm');
 
+        const data = await page.evaluate(() => document.querySelector('*').outerHTML);
+
+        console.log(data)
         const pageJobPosts = await page.evaluate((eval) => {
             const moreLink = document.querySelector('.moreLink');
 
