@@ -173,6 +173,7 @@ const getJobPosts = async () => {
 
     } catch (error) {
          jobPackage = errorConstructor(error.message)
+         getJobPosts()
          return
     } finally {
         await browser.close();
