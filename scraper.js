@@ -62,7 +62,11 @@ const getJobPosts = async () => {
 
         return null
     }));
+    const data = await page.evaluate(() => document.querySelector('*').outerHTML);
 
+    console.log(data)
+
+    
     if(!allPosts.length){
         throw new Error('All post returned nothing.')
     } 
