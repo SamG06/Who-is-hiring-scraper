@@ -1,196 +1,129 @@
-const puppeteer = require('puppeteer');
+/* eslint-disable no-promise-executor-return */
+/* eslint-disable max-len */
+/* eslint-disable no-await-in-loop */
+/* eslint-disable no-unreachable-loop */
+import { load } from 'cheerio';
+import fetch from 'node-fetch';
+import DOMPurify from 'isomorphic-dompurify';
 
-const createDOMPurify = require('dompurify');
-const { JSDOM } = require('jsdom');
-
-const window = new JSDOM('').window;
-const DOMPurify = createDOMPurify(window);
-
-
-const minutes = 600 * 3000;
-
-
-(() => {
-setInterval(() => {
-    getJobPosts();
-}, minutes)
-})()
-
-const errorConstructor = (msg) => {
-    return { statusCode: 500, error: msg }
- }
+const ycom = 'https://news.ycombinator.com/';
 
 let jobPackage = null;
 
 const getJobPosts = async () => {
-    const browser = await puppeteer.launch({
-        executablePath: process.env['PUPPETEER_EXECUTABLE_PATH'],
-        args: [
-          '--no-sandbox',
-          '--disable-setuid-sandbox',
-        ],
+  // Initial Page Call
+  const response = await fetch(`${ycom}submitted?id=whoishiring`);
+  const body = await response.text();
+  const _ = load(body);
+
+  const allPosts = Array.from(_('.titleline a'), (e) => {
+    if (_(e).contents().text().includes('Who is hiring')) {
+      return _(e).attr('href');
+    }
+    return null;
+  });
+
+  let month = _('.titleline').contents().first().text();
+
+  [month] = month.match(/\(([^)]+)\)/);
+
+  // Rest of the magic
+  const jobPostPageLinks = allPosts.filter((post) => post !== null);
+  let pageNum = 1;
+  let noMorePages = false;
+  let allJobPosts = [];
+
+  function sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  while (!noMorePages) {
+    const randomTimeout = Math.floor(Math.random() * 30000) + 10000;
+
+    await sleep(randomTimeout);
+
+    const mostRecentMonthPage = `${ycom}${jobPostPageLinks[0]}&&p=${pageNum}`;
+
+    const pageResponse = await fetch(mostRecentMonthPage);
+    const pageBody = await pageResponse.text();
+
+    const $ = load(pageBody);
+
+    const pageJobPosts = async () => {
+      const moreLink = $('.morelink').contents().first().text();
+      const newArray = Array.from($('.comtr'), (e) => {
+        const el = $(e);
+        el.find('.reply').remove();
+
+        const indentWidth = el.find('.ind img').attr('width');
+
+        if (indentWidth > 0) {
+          return null;
+        }
+
+        const element = el.find('.comment .commtext');
+        const dateTime = el.find('.age').attr('title');
+
+        if (!element) {
+          return null;
+        }
+
+        const title = element.contents().first().text();
+
+        const content = [...element.find('p')].map((p) => `<p>${$(p).contents().text()}</p>`).join('');
+
+        return {
+          title,
+          content,
+          dateTime,
+          id: el.attr('id'),
+        };
       });
-    try {
-    const page = await browser.newPage();
 
-    // Not loading what we don't need from the page
-    await page.setRequestInterception(true);
-    page.on('request', (request) => {
-        if (['image', 'stylesheet', 'font', 'script'].indexOf(request.resourceType()) !== -1) {
-            request.abort();
-        } else {
-            request.continue();
-        }
-    });
+      return { moreLink, newArray };
+    };
 
-    // The main page with all the listings for whoishiring
-    const ycom = 'https://news.ycombinator.com/';
+    const { moreLink, newArray } = await pageJobPosts();
 
-    try{
-        await page.goto(ycom + 'submitted?id=whoishiring');
-    }
-    catch (e) {
-        console.error('Something went wrong. You can cry now.', e);
-        return;
+    if (!moreLink) {
+      noMorePages = true;
     }
 
-    // Grab all posts
-    const allPosts = await page.evaluate(() => Array.from(document.querySelectorAll('.titleline a'), e => {
-        if (e.textContent.includes('Who is hiring')) {
-            return e.getAttribute('href');
-        }
+    pageNum += 1;
 
-        return null
-    }));
-    const data = await page.evaluate(() => document.querySelector('*').outerHTML);
+    allJobPosts = newArray.concat(allJobPosts);
+  }
 
-    console.log(data)
+  const finalJobs = allJobPosts.map((job) => {
+    const data = job;
 
-    
-    if(!allPosts.length){
-        throw new Error('All post returned nothing.')
-    } 
-
-    const jobPostPageLinks = allPosts.filter(post => post !== null);
-
-    if(!jobPostPageLinks.length){
-        throw new Error('Job post page links not found.')
+    if (job && job.title !== '') {
+      data.content = DOMPurify.sanitize(job.content, { USE_PROFILES: { html: true } });
+      return data;
     }
 
-    let pageNum = 1;
-    let noMorePages = false;
-    let allJobPosts = [];
+    return null;
+  });
 
-    function sleep(ms) {
-        return new Promise(resolve => setTimeout(resolve, ms))
-    }
+  jobPackage = {
+    statusCode: 200, jobs: finalJobs.filter((v) => v !== null), date_updated: new Date(), month,
+  };
 
-    
-    while (noMorePages === false) {
-        await sleep(9000); // Don't parse too fast and get blocked :3
+  return jobPackage;
+};
 
-        const mostRecentMonthPage = `${ycom}${jobPostPageLinks[0]}&&p=${pageNum}`;
-        console.log(mostRecentMonthPage)
-        console.log('Page ' + pageNum);
-        console.log(jobPostPageLinks[0]);
+// Initial start
+const minutes = 60 * 60 * 1000;
 
-        await page.goto(mostRecentMonthPage, 'rm');
+getJobPosts();
 
-        const data = await page.evaluate(() => document.querySelector('*').outerHTML);
+setInterval(() => {
+  getJobPosts();
+}, minutes);
 
-        console.log(data)
-        const pageJobPosts = await page.evaluate((eval) => {
-            const moreLink = document.querySelector('.moreLink');
+const cache = (request, reply) => {
+  jobPackage = jobPackage || { statusCode: 200, msg: 'service starting up please wait.' };
+  return reply.code(jobPackage.statusCode).send(jobPackage);
+};
 
-            let month = document.querySelector('.titleline');
-   
-
-            if(month){
-              month = month.innerText?.match(/\(([^)]+)\)/)[1]
-              console.log('this ran')
-            } else {
-                throw new Error('No match for month. Please update' + mostRecentMonthPage)
-            }
-
-
-            const newArray = Array.from(document.querySelectorAll('.comtr'), e => { 
-                e.querySelector('.reply').remove();
-                // check if message is just a reply through indentation
-                const indentWidth = e.querySelector('.ind img').width;
-                if(indentWidth > 0){
-                    return;
-                }
-                const element = e.querySelector('.comment .commtext');
-                const date_time = e.querySelector('.age').title;
-
-                if(!element){
-                    return;
-                }
-                const jobPostNodes = element.childNodes;
-
-                const title = jobPostNodes[0].textContent;
-           
-                const content =  [...element.querySelectorAll('p')].map(p => `<p>${p.innerHTML}</p>`).join('');
-                   
-                return { 
-                    month,
-                    title,
-                    content,
-                    date_time,
-                    id: e.id,
-                    indentWidth
-                } 
-            });
-
-            return { moreLink, newArray };
-        })
-
-        const { moreLink, newArray } = pageJobPosts;
-        allJobPosts = newArray.concat(allJobPosts);
-
-        if (!moreLink) {
-            noMorePages = true;
-        }
-
-        pageNum += 1;
-    }
-
-
-
-    const newJobPackage = [];
-    
-    allJobPosts.forEach((job) => {
-        const data = job;
-        if(!job){
-            return;
-        }
-        if (job.title != '') {
-            data.content = DOMPurify.sanitize(job.content, {USE_PROFILES: {html: true}});
-            newJobPackage.push(data);
-        }
-
-    })
-
-   
-    jobPackage = {statusCode: 200, jobs: newJobPackage, date_updated: new Date()};
-    
-    await browser.close();
-
-    return jobPackage
-
-    } catch (error) {
-         jobPackage = errorConstructor(error.message)
-         getJobPosts()
-         return
-    } finally {
-        await browser.close();
-    }
-}
-
-const sendJobPackage = async (request, reply) => {
-    if (!jobPackage) await getJobPosts();
-    
-    reply.code(jobPackage.statusCode).send(jobPackage);
-}
-
-module.exports = sendJobPackage; 
+export default cache;

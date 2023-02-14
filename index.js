@@ -1,20 +1,20 @@
-const fastify = require("fastify")({
+/* eslint-disable import/extensions */
+import Fastify from 'fastify';
+// CommonJs
+
+import scraper from './scraper.js';
+
+const fastify = Fastify({
   logger: true,
 });
 
-fastify.register(require("fastify-cors"), {
-  origin: "*",
+fastify.get('/', (request, reply) => {
+  reply.send({ message: 'Scraper for hacker news whoishiring' });
 });
 
-const scraper = require("./scraper.js");
+fastify.route({ method: 'GET', url: '/whoishiring/jobs', handler: scraper });
 
-fastify.get("/", function (request, reply) {
-  reply.send({ message: "Scraper for hacker news whoishiring" });
-});
-
-fastify.route({ method: "GET", url: "/whoishiring/jobs", handler: scraper });
-
-fastify.listen(3001, "0.0.0.0", function (err, address) {
+fastify.listen(3001, '0.0.0.0', (err, address) => {
   if (err) {
     fastify.log.error(err);
     process.exit(1);

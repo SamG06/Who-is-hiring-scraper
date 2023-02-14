@@ -1,6 +1,7 @@
 {
   "name": "whoishiring",
   "version": "1.0.0",
+  "type": "module",
   "description": "Scraper hacker news who is hiring",
   "main": "index.js",
   "scripts": {
@@ -11,15 +12,20 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "cheerio": "^1.0.0-rc.12",
     "dompurify": "^2.3.1",
     "dotenv": "^10.0.0",
     "fastify": "^3.9.2",
     "fastify-cors": "^5.1.0",
+    "isomorphic-dompurify": "^0.27.0",
     "jsdom": "^17.0.0",
+    "node-fetch": "^3.3.0",
     "nodemon": "^2.0.6",
     "puppeteer": "^19.6.3"
   },
   "devDependencies": {
+    "eslint": "^8.34.0",
+    "eslint-config-airbnb": "^19.0.4",
     "sequelize-cli": "^6.2.0"
   }
 }
