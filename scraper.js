@@ -120,7 +120,11 @@ getJobPosts();
 
 const cache = (request, reply) => {
   jobPackage = jobPackage || { statusCode: 200, msg: 'service starting up please wait.' };
-  return reply.code(jobPackage.statusCode).send(jobPackage);
+
+  reply
+    .code(jobPackage.statusCode)
+    .header('Content-Type', 'application/json; charset=utf-8')
+    .send(jobPackage);
 };
 
 export default cache;
