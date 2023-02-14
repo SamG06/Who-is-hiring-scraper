@@ -109,17 +109,14 @@ const getJobPosts = async () => {
     statusCode: 200, jobs: finalJobs.filter((v) => v !== null), date_updated: new Date(), month,
   };
 
+  const randomHour = Math.floor(Math.random() * 7200000) + 3600000;
+
+  setTimeout(getJobPosts, randomHour);
+
   return jobPackage;
 };
 
-// Initial start
-const minutes = 60 * 60 * 1000;
-
 getJobPosts();
-
-setInterval(() => {
-  getJobPosts();
-}, minutes);
 
 const cache = (request, reply) => {
   jobPackage = jobPackage || { statusCode: 200, msg: 'service starting up please wait.' };
