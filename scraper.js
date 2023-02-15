@@ -10,9 +10,15 @@ const ycom = 'https://news.ycombinator.com/';
 
 let jobPackage = null;
 
+const options = {
+  headers: {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36',
+  },
+};
+
 const getJobPosts = async () => {
   // Initial Page Call
-  const response = await fetch(`${ycom}submitted?id=whoishiring`);
+  const response = await fetch(`${ycom}submitted?id=whoishiring`, options);
   const body = await response.text();
   const _ = load(body);
 
