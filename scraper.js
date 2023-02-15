@@ -61,7 +61,7 @@ const getJobPosts = async () => {
 
     const mostRecentMonthPage = `${ycom}${jobPostPageLinks[0]}&&p=${pageNum}`;
 
-    const pageResponse = await fetch(mostRecentMonthPage);
+    const pageResponse = await fetch(mostRecentMonthPage, options);
     const pageBody = await pageResponse.text();
 
     const $ = load(pageBody);
