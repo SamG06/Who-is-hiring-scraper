@@ -17,11 +17,13 @@
     "dotenv": "^10.0.0",
     "fastify": "^3.9.2",
     "fastify-cors": "^5.1.0",
+    "https-proxy-agent": "^5.0.1",
     "isomorphic-dompurify": "^0.27.0",
     "jsdom": "^17.0.0",
     "node-fetch": "^3.3.0",
     "nodemon": "^2.0.6",
-    "puppeteer": "^19.6.3"
+    "puppeteer": "^19.6.3",
+    "user-agents": "^1.0.1291"
   },
   "devDependencies": {
     "eslint": "^8.34.0",

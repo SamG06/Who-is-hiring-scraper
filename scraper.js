@@ -1,3 +1,4 @@
+/* eslint-disable import/no-extraneous-dependencies */
 /* eslint-disable no-promise-executor-return */
 /* eslint-disable max-len */
 /* eslint-disable no-await-in-loop */
@@ -5,18 +6,28 @@
 import { load } from 'cheerio';
 import fetch from 'node-fetch';
 import DOMPurify from 'isomorphic-dompurify';
+import UserAgent from 'user-agents';
+import HttpsProxyAgent from 'https-proxy-agent';
+import * as dotenv from 'dotenv';
+
+dotenv.config();
 
 const ycom = 'https://news.ycombinator.com/';
 
 let jobPackage = null;
 
-const options = {
-  headers: {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36',
-  },
-};
-
 const getJobPosts = async () => {
+  const proxy = new HttpsProxyAgent(process.env.PROXY_AGENT);
+
+  const uAgent = new UserAgent({ deviceCategory: 'desktop' });
+
+  const options = {
+    agent: proxy,
+    headers: {
+      'User-Agent': uAgent.data.userAgent,
+    },
+  };
+
   // Initial Page Call
   const response = await fetch(`${ycom}submitted?id=whoishiring`, options);
   const body = await response.text();
@@ -44,7 +55,7 @@ const getJobPosts = async () => {
   }
 
   while (!noMorePages) {
-    const randomTimeout = Math.floor(Math.random() * 30000) + 10000;
+    const randomTimeout = Math.floor(Math.random() * (120000 - 30000) + 30000);
 
     await sleep(randomTimeout);
 
