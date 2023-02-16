@@ -1,8 +1,15 @@
+/* eslint-disable import/no-extraneous-dependencies */
+/* eslint-disable no-console */
 /* eslint-disable import/extensions */
 import Fastify from 'fastify';
-// CommonJs
+import cron from 'node-cron';
 
-import scraper from './scraper.js';
+import scraper, { getJobPosts } from './scraper.js';
+
+cron.schedule('0 0 */12 * * *', () => {
+  console.log(`Cron execution: ${new Date()}`);
+  getJobPosts();
+});
 
 const fastify = Fastify({
   logger: true,
@@ -14,10 +21,9 @@ fastify.get('/', (request, reply) => {
 
 fastify.route({ method: 'GET', url: '/whoishiring/jobs', handler: scraper });
 
-fastify.listen(3001, '0.0.0.0', (err, address) => {
+fastify.listen(3001, '0.0.0.0', (err) => {
   if (err) {
     fastify.log.error(err);
     process.exit(1);
   }
-  fastify.log.info(`server listening on ${address}`);
 });

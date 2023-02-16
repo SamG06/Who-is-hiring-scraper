@@ -6,8 +6,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "nodemon index.js",
-    "testing": "nodemon testing.js"
+    "start": "nodemon index.js --ignore ./job_data"
   },
   "author": "",
   "license": "MIT",
@@ -20,6 +19,7 @@
     "https-proxy-agent": "^5.0.1",
     "isomorphic-dompurify": "^0.27.0",
     "jsdom": "^17.0.0",
+    "node-cron": "^3.0.2",
     "node-fetch": "^3.3.0",
     "nodemon": "^2.0.6",
     "puppeteer": "^19.6.3",

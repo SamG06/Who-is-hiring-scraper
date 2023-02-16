@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /* eslint-disable import/no-extraneous-dependencies */
 /* eslint-disable no-promise-executor-return */
 /* eslint-disable max-len */
@@ -9,133 +10,150 @@ import DOMPurify from 'isomorphic-dompurify';
 import UserAgent from 'user-agents';
 import HttpsProxyAgent from 'https-proxy-agent';
 import * as dotenv from 'dotenv';
+import * as fs from 'fs';
 
 dotenv.config();
 
 const ycom = 'https://news.ycombinator.com/';
+const filePath = './job_data/latest-fetched-jobs.json';
 
 let jobPackage = null;
 
-const getJobPosts = async () => {
-  const proxy = new HttpsProxyAgent(process.env.PROXY_AGENT);
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
-  const uAgent = new UserAgent({ deviceCategory: 'desktop' });
+export const getJobPosts = async () => {
+  try {
+    console.log(`Starting new job postings request: ${new Date()}`);
 
-  const options = {
-    agent: proxy,
-    headers: {
-      'User-Agent': uAgent.data.userAgent,
-    },
-  };
+    const proxy = new HttpsProxyAgent(process.env.PROXY_AGENT);
 
-  // Initial Page Call
-  const response = await fetch(`${ycom}submitted?id=whoishiring`, options);
-  const body = await response.text();
-  const _ = load(body);
+    const uAgent = new UserAgent({ deviceCategory: 'desktop' });
 
-  const allPosts = Array.from(_('.titleline a'), (e) => {
-    if (_(e).contents().text().includes('Who is hiring')) {
-      return _(e).attr('href');
-    }
-    return null;
-  });
-
-  let month = _('.titleline').contents().first().text();
-
-  [month] = month.match(/\(([^)]+)\)/);
-
-  // Rest of the magic
-  const jobPostPageLinks = allPosts.filter((post) => post !== null);
-  let pageNum = 1;
-  let noMorePages = false;
-  let allJobPosts = [];
-
-  function sleep(ms) {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-  }
-
-  while (!noMorePages) {
-    const randomTimeout = Math.floor(Math.random() * (120000 - 30000) + 30000);
-
-    await sleep(randomTimeout);
-
-    const mostRecentMonthPage = `${ycom}${jobPostPageLinks[0]}&&p=${pageNum}`;
-
-    const pageResponse = await fetch(mostRecentMonthPage, options);
-    const pageBody = await pageResponse.text();
-
-    const $ = load(pageBody);
-
-    const pageJobPosts = async () => {
-      const moreLink = $('.morelink').contents().first().text();
-      const newArray = Array.from($('.comtr'), (e) => {
-        const el = $(e);
-        el.find('.reply').remove();
-
-        const indentWidth = el.find('.ind img').attr('width');
-
-        if (indentWidth > 0) {
-          return null;
-        }
-
-        const element = el.find('.comment .commtext');
-        const dateTime = el.find('.age').attr('title');
-
-        if (!element) {
-          return null;
-        }
-
-        const title = element.contents().first().text();
-
-        const content = [...element.find('p')].map((p) => `<p>${$(p).contents().text()}</p>`).join('');
-
-        return {
-          title,
-          content,
-          dateTime,
-          id: el.attr('id'),
-        };
-      });
-
-      return { moreLink, newArray };
+    const options = {
+      agent: proxy,
+      headers: {
+        'User-Agent': uAgent.data.userAgent,
+      },
     };
 
-    const { moreLink, newArray } = await pageJobPosts();
+    // Initial Page Call
+    const response = await fetch(`${ycom}submitted?id=whoishiring`, options);
+    const body = await response.text();
+    const _ = load(body);
 
-    if (!moreLink) {
-      noMorePages = true;
+    const allPosts = Array.from(_('.titleline a'), (e) => {
+      if (_(e).contents().text().includes('Who is hiring')) {
+        return _(e).attr('href');
+      }
+      return null;
+    });
+
+    let month = _('.titleline').contents().first().text();
+
+    [month] = month.match(/\(([^)]+)\)/);
+
+    // Rest of the magic
+    const jobPostPageLinks = allPosts.filter((post) => post !== null);
+    let pageNum = 1;
+    let noMorePages = false;
+    let allJobPosts = [];
+
+    while (!noMorePages) {
+      const mostRecentMonthPage = `${ycom}${jobPostPageLinks[0]}&&p=${pageNum}`;
+      console.log(`Working on hacker news page ${pageNum}: ${mostRecentMonthPage}`);
+
+      const randomTimeout = Math.floor(Math.random() * (120000 - 30000) + 30000);
+
+      console.log(`Timeout time: ${randomTimeout}`);
+
+      await sleep(randomTimeout);
+
+      console.log(`Timeout Over: Continuing page ${pageNum}`);
+
+      const pageResponse = await fetch(mostRecentMonthPage, options);
+      const pageBody = await pageResponse.text();
+
+      const $ = load(pageBody);
+
+      const pageJobPosts = async () => {
+        const moreLink = $('.morelink').contents().first().text();
+        const newArray = Array.from($('.comtr'), (e) => {
+          const el = $(e);
+          el.find('.reply').remove();
+
+          const indentWidth = el.find('.ind img').attr('width');
+
+          if (indentWidth > 0) {
+            return null;
+          }
+
+          const element = el.find('.comment .commtext');
+          const dateTime = el.find('.age').attr('title');
+
+          if (!element) {
+            return null;
+          }
+
+          const title = element.contents().first().text();
+
+          const content = [...element.find('p')].map((p) => `<p>${$(p).contents().text()}</p>`).join('');
+
+          return {
+            title,
+            content,
+            dateTime,
+            id: el.attr('id'),
+          };
+        });
+
+        return { moreLink, newArray };
+      };
+
+      const { moreLink, newArray } = await pageJobPosts();
+
+      if (!moreLink) {
+        noMorePages = true;
+      }
+
+      pageNum += 1;
+
+      allJobPosts = newArray.concat(allJobPosts);
     }
 
-    pageNum += 1;
+    const finalJobs = allJobPosts.map((job) => {
+      const data = job;
 
-    allJobPosts = newArray.concat(allJobPosts);
+      if (job && job.title !== '') {
+        data.content = DOMPurify.sanitize(job.content, { USE_PROFILES: { html: true } });
+        return data;
+      }
+
+      return null;
+    });
+
+    jobPackage = {
+      statusCode: 200, jobs: finalJobs.filter((v) => v !== null), date_updated: new Date(), month,
+    };
+
+    fs.writeFileSync(filePath, JSON.stringify(jobPackage));
+
+    console.log(`Success: ${new Date()}`);
+  } catch (e) {
+    console.error(`Critical Error: ${e} ${new Date()}`);
   }
-
-  const finalJobs = allJobPosts.map((job) => {
-    const data = job;
-
-    if (job && job.title !== '') {
-      data.content = DOMPurify.sanitize(job.content, { USE_PROFILES: { html: true } });
-      return data;
-    }
-
-    return null;
-  });
-
-  jobPackage = {
-    statusCode: 200, jobs: finalJobs.filter((v) => v !== null), date_updated: new Date(), month,
-  };
-
-  const randomHour = Math.floor(Math.random() * 7200000) + 3600000;
-
-  setTimeout(getJobPosts, randomHour);
-
-  return jobPackage;
 };
 
 getJobPosts();
 
 const cache = (request, reply) => {
+  try {
+    jobPackage = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+  } catch (e) {
+    console.log('File issue:', e);
+  }
+
   jobPackage = jobPackage || { statusCode: 200, msg: 'service starting up please wait.' };
 
   reply
