@@ -3,7 +3,7 @@
 /* eslint-disable import/extensions */
 import Fastify from 'fastify';
 import cron from 'node-cron';
-
+import fastifyCors from 'fastify-cors';
 import scraper, { getJobPosts } from './scraper.js';
 
 cron.schedule('0 0 */12 * * *', () => {
@@ -13,6 +13,10 @@ cron.schedule('0 0 */12 * * *', () => {
 
 const fastify = Fastify({
   logger: true,
+});
+
+fastify.register(fastifyCors, {
+  origin: '*',
 });
 
 fastify.get('/', (request, reply) => {
