@@ -98,7 +98,33 @@ export const getJobPosts = async () => {
 
           const title = element.contents().first().text();
 
-          const content = [...element.find('p')].map((p) => `<p>${$(p).contents().text()}</p>`).join('');
+          const fullLinkText = (p) => {
+            const aLinks = [...p.find('a')];
+            console.log(aLinks.length);
+            const replacements = [];
+
+            aLinks.forEach((link) => {
+              const truncatedPath = $(link).contents().text();
+              if (!truncatedPath) return;
+              replacements.push({ original: truncatedPath, replace: $(link).attr('href') });
+            });
+
+            return replacements;
+          };
+
+          const content = [...element.find('p')].map((p) => {
+            const paragraph = $(p);
+
+            const replacements = fullLinkText(paragraph);
+
+            let text = paragraph.contents().text();
+
+            replacements.forEach(({ original, replace }) => {
+              text = text.replace(original, replace);
+            });
+
+            return `<p>${text}</p>`;
+          }).join('');
 
           return {
             title,
