@@ -100,7 +100,7 @@ export const getJobPosts = async () => {
 
           const fullLinkText = (p) => {
             const aLinks = [...p.find('a')];
-            console.log(aLinks.length);
+
             const replacements = [];
 
             aLinks.forEach((link) => {
