@@ -6,7 +6,7 @@ import cron from 'node-cron';
 import fastifyCors from 'fastify-cors';
 import scraper, { getJobPosts } from './scraper.js';
 
-cron.schedule('0 0 */12 * * *', () => {
+cron.schedule('0 0 * * 0', () => {
   console.log(`Cron execution: ${new Date()}`);
   getJobPosts();
 });
